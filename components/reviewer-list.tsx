@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CaretRight,
@@ -47,7 +47,35 @@ type ReviewerListProps = {
   reviewers: ReviewerListItem[];
 };
 
-function formatWhen(iso: string | null) {
+const emptySubscribe = () => () => {};
+
+/** True only after client hydration; false on server and first client paint. */
+function useIsClient() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+}
+
+/** Locale-independent label for SSR + first client paint (hydration-safe). */
+function formatWhenStable(iso: string | null) {
+  if (!iso) return "Not generated yet";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "Generated";
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
+    const hh = String(d.getUTCHours()).padStart(2, "0");
+    const mi = String(d.getUTCMinutes()).padStart(2, "0");
+    return `Generated ${yyyy}-${mm}-${dd} ${hh}:${mi} UTC`;
+  } catch {
+    return "Generated";
+  }
+}
+
+function formatWhenLocal(iso: string | null) {
   if (!iso) return "Not generated yet";
   try {
     return `Generated ${new Date(iso).toLocaleString(undefined, {
@@ -59,6 +87,12 @@ function formatWhen(iso: string | null) {
   } catch {
     return "Generated";
   }
+}
+
+function GeneratedAtLabel({ iso }: { iso: string | null }) {
+  const isClient = useIsClient();
+  const text = isClient ? formatWhenLocal(iso) : formatWhenStable(iso);
+  return <span suppressHydrationWarning>{text}</span>;
 }
 
 export function ReviewerList({
@@ -237,7 +271,7 @@ export function ReviewerList({
                     {reviewer.name}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {formatWhen(reviewer.lastGeneratedAt)}
+                    <GeneratedAtLabel iso={reviewer.lastGeneratedAt} />
                   </span>
                 </span>
                 <CaretRight

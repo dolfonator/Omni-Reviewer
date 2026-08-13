@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 
 import {
@@ -24,6 +24,44 @@ type ReviewerWorkspaceProps = {
   lastGeneratedAt: string | null;
 };
 
+const NOT_GENERATED_YET =
+  "Not generated yet. Upload Ready sources, then generate.";
+
+const emptySubscribe = () => () => {};
+
+/** True only after client hydration; false on server and first client paint. */
+function useIsClient() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+}
+
+/** Locale-independent label for SSR + first client paint (hydration-safe). */
+function formatLastGeneratedStable(iso: string) {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "Last generated";
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
+    const hh = String(d.getUTCHours()).padStart(2, "0");
+    const mi = String(d.getUTCMinutes()).padStart(2, "0");
+    return `Last generated ${yyyy}-${mm}-${dd} ${hh}:${mi} UTC`;
+  } catch {
+    return "Last generated";
+  }
+}
+
+function formatLastGeneratedLocal(iso: string) {
+  try {
+    return `Last generated ${new Date(iso).toLocaleString()}`;
+  } catch {
+    return "Last generated";
+  }
+}
+
 export function ReviewerWorkspace({
   topicId,
   topicName,
@@ -36,6 +74,12 @@ export function ReviewerWorkspace({
   const [sources, setSources] = useState(initialSources);
   const [views, setViews] = useState(initialViews);
   const [generatedAt, setGeneratedAt] = useState(lastGeneratedAt);
+  const isClient = useIsClient();
+  const generatedLabel = !generatedAt
+    ? NOT_GENERATED_YET
+    : isClient
+      ? formatLastGeneratedLocal(generatedAt)
+      : formatLastGeneratedStable(generatedAt);
 
   const hasReadySource = useMemo(
     () => sources.some((s) => s.ingestStatus === "ready"),
@@ -73,10 +117,8 @@ export function ReviewerWorkspace({
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
           {reviewerName}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {generatedAt
-            ? `Last generated ${new Date(generatedAt).toLocaleString()}`
-            : "Not generated yet. Upload Ready sources, then generate."}
+        <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+          {generatedLabel}
         </p>
       </div>
 
