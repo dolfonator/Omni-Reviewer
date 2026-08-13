@@ -67,7 +67,3 @@ export function getEnv(): Env {
       .join("; ")}`,
   );
 }
-
-export function getOptionalEnv<K extends keyof Env>(key: K): Env[K] | undefined {
-  return process.env[key as string] as Env[K] | undefined;
-}
