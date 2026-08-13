@@ -7,8 +7,8 @@ const envSchema = z.object({
   AUTH_URL: z.string().optional(),
   DATABASE_URL: z.string().min(1),
   BLOB_READ_WRITE_TOKEN: z.string().min(1),
-  XAI_API_KEY: z.string().min(1),
-  AI_MODEL: z.string().default("grok-4.6"),
+  GEMINI_API_KEY: z.string().min(1),
+  AI_MODEL: z.string().default("gemini-3.7-flash"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -38,8 +38,8 @@ export function getEnv(): Env {
     AUTH_URL: process.env.AUTH_URL,
     DATABASE_URL: process.env.DATABASE_URL,
     BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
-    XAI_API_KEY: process.env.XAI_API_KEY,
-    AI_MODEL: process.env.AI_MODEL ?? "grok-4.6",
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    AI_MODEL: process.env.AI_MODEL ?? "gemini-3.7-flash",
   });
 
   if (result.success) {
@@ -56,8 +56,8 @@ export function getEnv(): Env {
       AUTH_URL: process.env.AUTH_URL,
       DATABASE_URL: process.env.DATABASE_URL ?? "",
       BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN ?? "",
-      XAI_API_KEY: process.env.XAI_API_KEY ?? "",
-      AI_MODEL: process.env.AI_MODEL ?? "grok-4.6",
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
+      AI_MODEL: process.env.AI_MODEL ?? "gemini-3.7-flash",
     };
   }
 

@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/xai": "^4.0.38",
+    "@ai-sdk/google": "^4.0.44",
     "@base-ui/react": "^1.7.0",
     "@neondatabase/serverless": "^1.1.0",
     "@phosphor-icons/react": "^2.1.10",

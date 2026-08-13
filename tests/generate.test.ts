@@ -19,8 +19,8 @@ vi.mock("ai", () => ({
   generateText: (...args: unknown[]) => generateText(...args),
 }));
 
-vi.mock("@ai-sdk/xai", () => ({
-  createXai: () => {
+vi.mock("@ai-sdk/google", () => ({
+  createGoogle: () => {
     return (modelId: string) => ({ modelId });
   },
 }));
@@ -38,8 +38,8 @@ const root = path.resolve(__dirname, "..");
 describe("generate", () => {
   beforeEach(() => {
     generateText.mockReset();
-    process.env.XAI_API_KEY = "test-key-not-real";
-    process.env.AI_MODEL = "grok-4.6";
+    process.env.GEMINI_API_KEY = "test-key-not-real";
+    process.env.AI_MODEL = "gemini-3.7-flash";
   });
 
   it("calls generateTextFromPrompt in order Locked In → Summary → Test Me → Carded", async () => {

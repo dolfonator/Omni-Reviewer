@@ -50,8 +50,8 @@ Names only — set values in `.env.local` (local) or your host (production):
 | `AUTH_URL` | Canonical app URL (set after first production deploy) |
 | `DATABASE_URL` | Neon Postgres connection string |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob read/write token |
-| `XAI_API_KEY` | xAI API key for generation |
-| `AI_MODEL` | Model id (default `grok-4.6`) |
+| `GEMINI_API_KEY` | Gemini API key for generation |
+| `AI_MODEL` | Model id (default `gemini-3.7-flash`) |
 
 See `.env.example` for the full list.
 

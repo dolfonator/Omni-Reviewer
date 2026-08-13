@@ -61,7 +61,7 @@ Generated only on explicit Generate / Regenerate. Tab changes never call the mod
 
 - Auth.js Credentials, shared `APP_PASSWORD`, session via `AUTH_SECRET`.
 - Middleware/proxy protects pages and APIs; unauthenticated pages go to `/login`, APIs return 401.
-- `XAI_API_KEY` is server-only. Client never reads it.
+- `GEMINI_API_KEY` is server-only. Client never reads it.
 - Client uploads go direct to Vercel Blob, then `POST` metadata to `/api/reviewers/[id]/sources`. Do not wait on Blob `onUploadCompleted` for source rows.
 
 ## Configuration (names only)
@@ -74,8 +74,8 @@ Generated only on explicit Generate / Regenerate. Tab changes never call the mod
 | `AUTH_URL` | Canonical production URL |
 | `DATABASE_URL` | Neon Postgres |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob |
-| `XAI_API_KEY` | Generation (server only) |
-| `AI_MODEL` | Model id; default `grok-4.6` |
+| `GEMINI_API_KEY` | Generation (server only) |
+| `AI_MODEL` | Model id; default `gemini-3.7-flash` |
 
 ## Product principles
 

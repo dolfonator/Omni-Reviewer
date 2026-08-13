@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createXai } from "@ai-sdk/xai";
+import { createGoogle } from "@ai-sdk/google";
 import { generateText } from "ai";
 
 import {
@@ -25,19 +25,20 @@ export class StudyPackJsonError extends Error {
 }
 
 export function getModelId(): string {
-  return process.env.AI_MODEL || "grok-4.6";
+  return process.env.AI_MODEL || "gemini-3.7-flash";
 }
 
-function getXai() {
-  const apiKey = process.env.XAI_API_KEY;
+// Unpaid Gemini Developer API traffic (prompts, files, outputs) may be used to improve Google products.
+function getGoogle() {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("XAI_API_KEY is not set");
+    throw new Error("GEMINI_API_KEY is not set");
   }
-  return createXai({ apiKey });
+  return createGoogle({ apiKey });
 }
 
 function getModel() {
-  return getXai()(getModelId());
+  return getGoogle()(getModelId());
 }
 
 export async function generateTextFromPrompt(prompt: string): Promise<string> {
