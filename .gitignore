@@ -55,4 +55,5 @@ CLAUDE.md
 
 # Vercel marketplace agent-skill artifacts (installed by `vercel integration add`)
 .agents/
+.claude/
 skills-lock.json
