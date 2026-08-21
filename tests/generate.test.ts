@@ -25,7 +25,14 @@ vi.mock("@ai-sdk/google", () => ({
   },
 }));
 
-import { generateStudyPack, generateTextFromPrompt } from "@/lib/ai";
+import {
+  generateCarded,
+  generateLockedIn,
+  generateStudyPack,
+  generateSummary,
+  generateTestMe,
+  generateTextFromPrompt,
+} from "@/lib/ai";
 import {
   cardedPrompt,
   lockedInPrompt,
@@ -89,6 +96,64 @@ describe("generate", () => {
     expect(pack.carded).toEqual(JSON.parse(SAMPLE_CARDED_JSON));
   });
 
+  it("generateSummary prompt contains Locked In and not a unique raw-source marker", async () => {
+    const rawMarker = "RAW_SOURCE_UNIQUE_TOKEN_xyz";
+    generateText.mockResolvedValueOnce({ text: SAMPLE_SUMMARY });
+
+    const summary = await generateSummary(SAMPLE_LOCKED_IN);
+
+    expect(generateText).toHaveBeenCalledTimes(1);
+    const prompt = (generateText.mock.calls[0][0] as { prompt: string }).prompt;
+    expect(prompt).toBe(summaryPrompt(SAMPLE_LOCKED_IN));
+    expect(prompt).toContain(SAMPLE_LOCKED_IN);
+    expect(prompt).not.toContain(rawMarker);
+    expect(summary).toBe(SAMPLE_SUMMARY);
+  });
+
+  it("generateTestMe prompt contains Locked In, not a unique raw-source marker, and returns a parsed array", async () => {
+    const rawMarker = "RAW_SOURCE_UNIQUE_TOKEN_xyz";
+    generateText.mockResolvedValueOnce({ text: SAMPLE_TEST_ME_JSON });
+
+    const testMe = await generateTestMe(SAMPLE_LOCKED_IN);
+
+    expect(generateText).toHaveBeenCalledTimes(1);
+    const prompt = (generateText.mock.calls[0][0] as { prompt: string }).prompt;
+    expect(prompt).toBe(testMePrompt(SAMPLE_LOCKED_IN));
+    expect(prompt).toContain(SAMPLE_LOCKED_IN);
+    expect(prompt).not.toContain(rawMarker);
+    expect(Array.isArray(testMe)).toBe(true);
+    expect(testMe).toEqual(JSON.parse(SAMPLE_TEST_ME_JSON));
+  });
+
+  it("generateCarded prompt contains Summary, not Locked In as the source document", async () => {
+    generateText.mockResolvedValueOnce({ text: SAMPLE_CARDED_JSON });
+
+    const carded = await generateCarded(SAMPLE_SUMMARY);
+
+    expect(generateText).toHaveBeenCalledTimes(1);
+    const prompt = (generateText.mock.calls[0][0] as { prompt: string }).prompt;
+    expect(prompt).toBe(cardedPrompt(SAMPLE_SUMMARY));
+    expect(prompt).toContain(SAMPLE_SUMMARY);
+    expect(prompt).not.toBe(cardedPrompt(SAMPLE_LOCKED_IN));
+    expect(prompt).not.toContain(SAMPLE_LOCKED_IN);
+    expect(carded).toEqual(JSON.parse(SAMPLE_CARDED_JSON));
+  });
+
+  it("generateLockedIn prompt contains source text and not later-mode documents", async () => {
+    const extractedTexts = [
+      { filename: "notes.txt", text: "Intro lecture. RAW_SOURCE_UNIQUE_TOKEN_xyz" },
+    ];
+    generateText.mockResolvedValueOnce({ text: SAMPLE_LOCKED_IN });
+
+    const lockedIn = await generateLockedIn(extractedTexts);
+
+    expect(generateText).toHaveBeenCalledTimes(1);
+    const prompt = (generateText.mock.calls[0][0] as { prompt: string }).prompt;
+    expect(prompt).toBe(lockedInPrompt(extractedTexts));
+    expect(prompt).toContain("RAW_SOURCE_UNIQUE_TOKEN_xyz");
+    expect(lockedIn).toBe(SAMPLE_LOCKED_IN);
+  });
+
   it("GET views route does not import generate at module scope", () => {
     const viewsRoute = readFileSync(
       path.join(root, "app/api/reviewers/[id]/views/route.ts"),
@@ -100,5 +165,30 @@ describe("generate", () => {
     );
     expect(viewsRoute).not.toMatch(/generateTextFromPrompt|generateStudyPack/);
     expect(viewsRoute).toMatch(/export async function GET/);
+  });
+
+  it("POST generate route branches on kind and uses per-mode helpers", () => {
+    const generateRoute = readFileSync(
+      path.join(root, "app/api/reviewers/[id]/generate/route.ts"),
+      "utf8",
+    );
+
+    expect(generateRoute).toMatch(/parseGenerateBody/);
+    expect(generateRoute).toMatch(/missingUpstreamMessage/);
+    expect(generateRoute).toMatch(/generateStudyPack/);
+    expect(generateRoute).toMatch(/generateSummary/);
+    expect(generateRoute).toMatch(/generateTestMe/);
+    expect(generateRoute).toMatch(/generateCarded/);
+  });
+
+  it("GET sources route omits extractedText from the JSON payload", () => {
+    const sourcesRoute = readFileSync(
+      path.join(root, "app/api/reviewers/[id]/sources/route.ts"),
+      "utf8",
+    );
+
+    expect(sourcesRoute).toMatch(/listSourcesForUi/);
+    expect(sourcesRoute).not.toMatch(/extracted_text:\s*row/);
+    expect(sourcesRoute).not.toMatch(/extractedText:\s*row\.extractedText/);
   });
 });

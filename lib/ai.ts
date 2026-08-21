@@ -187,6 +187,32 @@ async function parseJsonWithRepair(
   }
 }
 
+export async function generateLockedIn(
+  extractedTexts: { filename: string; text: string }[],
+): Promise<string> {
+  return generateTextFromPrompt(lockedInPrompt(extractedTexts));
+}
+
+export async function generateSummary(
+  lockedInMarkdown: string,
+): Promise<string> {
+  return generateTextFromPrompt(summaryPrompt(lockedInMarkdown));
+}
+
+export async function generateTestMe(
+  lockedInMarkdown: string,
+): Promise<unknown> {
+  const testMeRaw = await generateTextFromPrompt(testMePrompt(lockedInMarkdown));
+  return parseJsonWithRepair("test_me", testMeRaw);
+}
+
+export async function generateCarded(
+  summaryMarkdown: string,
+): Promise<unknown> {
+  const cardedRaw = await generateTextFromPrompt(cardedPrompt(summaryMarkdown));
+  return parseJsonWithRepair("carded", cardedRaw);
+}
+
 /**
  * Sequential study-pack pipeline:
  * Locked In (sources) → Summary (Locked In) → Test Me (Locked In) → Carded (Summary).
@@ -203,17 +229,10 @@ export async function generateStudyPack(input: {
     throw new Error("generateStudyPack requires at least one extracted text");
   }
 
-  const lockedIn = await generateTextFromPrompt(
-    lockedInPrompt(input.extractedTexts),
-  );
-
-  const summary = await generateTextFromPrompt(summaryPrompt(lockedIn));
-
-  const testMeRaw = await generateTextFromPrompt(testMePrompt(lockedIn));
-  const testMe = await parseJsonWithRepair("test_me", testMeRaw);
-
-  const cardedRaw = await generateTextFromPrompt(cardedPrompt(summary));
-  const carded = await parseJsonWithRepair("carded", cardedRaw);
+  const lockedIn = await generateLockedIn(input.extractedTexts);
+  const summary = await generateSummary(lockedIn);
+  const testMe = await generateTestMe(lockedIn);
+  const carded = await generateCarded(summary);
 
   return { lockedIn, summary, testMe, carded };
 }

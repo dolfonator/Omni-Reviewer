@@ -1,17 +1,15 @@
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
 
 import { AppShell } from "@/components/app-shell";
 import type { ViewsPayload } from "@/components/generate-button";
 import { ReviewerWorkspace } from "@/components/reviewer-workspace";
 import type { SourceListItem } from "@/components/source-panel";
-import { db } from "@/lib/db";
 import {
   getReviewer,
   getTopic,
-  listSourcesByReviewer,
+  listSourcesForUi,
+  listViewMetaByReviewer,
 } from "@/lib/queries";
-import { views } from "@/lib/schema";
 import type { IngestStatus, SourceKind } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +21,17 @@ type PageProps = {
 export default async function ReviewerPage({ params }: PageProps) {
   const { topicId, reviewerId } = await params;
 
-  const topic = await getTopic(topicId);
+  const [topic, reviewer] = await Promise.all([
+    getTopic(topicId),
+    getReviewer(reviewerId),
+  ]);
   if (!topic) notFound();
-
-  const reviewer = await getReviewer(reviewerId);
   if (!reviewer || reviewer.topicId !== topicId) notFound();
 
-  const sourceRows = await listSourcesByReviewer(reviewerId);
+  const [sourceRows, viewMeta] = await Promise.all([
+    listSourcesForUi(reviewerId),
+    listViewMetaByReviewer(reviewerId),
+  ]);
   const initialSources: SourceListItem[] = sourceRows.map((s) => ({
     id: s.id,
     reviewerId: s.reviewerId,
@@ -43,11 +45,6 @@ export default async function ReviewerPage({ params }: PageProps) {
     createdAt: s.createdAt.toISOString(),
   }));
 
-  const viewRows = await db
-    .select()
-    .from(views)
-    .where(eq(views.reviewerId, reviewerId));
-
   const initialViews: ViewsPayload = {
     locked_in: null,
     summary: null,
@@ -55,19 +52,19 @@ export default async function ReviewerPage({ params }: PageProps) {
     carded: null,
   };
 
-  for (const row of viewRows) {
-    const serialized = {
+  for (const row of viewMeta) {
+    const placeholder = {
       id: row.id,
       reviewerId: row.reviewerId,
       kind: row.kind,
-      content: row.content,
-      contentJson: row.contentJson ?? null,
+      content: "",
+      contentJson: null,
       generatedAt: row.generatedAt.toISOString(),
     };
-    if (row.kind === "locked_in") initialViews.locked_in = serialized;
-    else if (row.kind === "summary") initialViews.summary = serialized;
-    else if (row.kind === "test_me") initialViews.test_me = serialized;
-    else if (row.kind === "carded") initialViews.carded = serialized;
+    if (row.kind === "locked_in") initialViews.locked_in = placeholder;
+    else if (row.kind === "summary") initialViews.summary = placeholder;
+    else if (row.kind === "test_me") initialViews.test_me = placeholder;
+    else if (row.kind === "carded") initialViews.carded = placeholder;
   }
 
   return (

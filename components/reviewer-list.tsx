@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useSyncExternalStore, useTransition } from "react";
+import Link, { useLinkStatus } from "next/link";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CaretRight,
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatStampLocal, formatStampUtc } from "@/lib/format-generated-at";
+import { useIsClient } from "@/lib/use-is-client";
 import { readApiError } from "@/lib/utils";
 
 export type ReviewerListItem = {
@@ -47,51 +49,44 @@ type ReviewerListProps = {
   reviewers: ReviewerListItem[];
 };
 
-const emptySubscribe = () => () => {};
+const LIST_LOCAL_STAMP: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+};
 
-/** True only after client hydration; false on server and first client paint. */
-function useIsClient() {
-  return useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false,
+function PackRowChevron() {
+  const { pending } = useLinkStatus();
+  if (pending) {
+    return (
+      <>
+        <CircleNotch
+          className="size-4 shrink-0 animate-spin text-muted-foreground"
+          weight="bold"
+          aria-hidden
+        />
+        <span className="sr-only">Opening</span>
+      </>
+    );
+  }
+  return (
+    <CaretRight
+      className="size-4 shrink-0 text-muted-foreground opacity-60 group-hover:opacity-100"
+      weight="bold"
+    />
   );
-}
-
-/** Locale-independent label for SSR + first client paint (hydration-safe). */
-function formatWhenStable(iso: string | null) {
-  if (!iso) return "Not generated yet";
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "Generated";
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(d.getUTCDate()).padStart(2, "0");
-    const hh = String(d.getUTCHours()).padStart(2, "0");
-    const mi = String(d.getUTCMinutes()).padStart(2, "0");
-    return `Generated ${yyyy}-${mm}-${dd} ${hh}:${mi} UTC`;
-  } catch {
-    return "Generated";
-  }
-}
-
-function formatWhenLocal(iso: string | null) {
-  if (!iso) return "Not generated yet";
-  try {
-    return `Generated ${new Date(iso).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    })}`;
-  } catch {
-    return "Generated";
-  }
 }
 
 function GeneratedAtLabel({ iso }: { iso: string | null }) {
   const isClient = useIsClient();
-  const text = isClient ? formatWhenLocal(iso) : formatWhenStable(iso);
+  if (!iso) {
+    return <span suppressHydrationWarning>Not generated yet</span>;
+  }
+  const stamp = isClient
+    ? formatStampLocal(iso, LIST_LOCAL_STAMP)
+    : formatStampUtc(iso);
+  const text = stamp ? `Generated ${stamp}` : "Generated";
   return <span suppressHydrationWarning>{text}</span>;
 }
 
@@ -240,7 +235,7 @@ export function ReviewerList({
         <EmptyState
           icon={<Notebook weight="duotone" className="size-5" />}
           title="No study packs yet"
-          description="A reviewer is one study pack: sources you upload, plus four views you generate when ready."
+          description="A reviewer is one study pack: sources you upload, plus four study modes you generate when ready."
           action={
             <Button
               type="button"
@@ -261,6 +256,7 @@ export function ReviewerList({
             <li key={reviewer.id} className="group flex items-stretch">
               <Link
                 href={`/topics/${topicId}/reviewers/${reviewer.id}`}
+                prefetch
                 className="flex min-h-14 min-w-0 flex-1 items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40"
               >
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
@@ -274,10 +270,7 @@ export function ReviewerList({
                     <GeneratedAtLabel iso={reviewer.lastGeneratedAt} />
                   </span>
                 </span>
-                <CaretRight
-                  className="size-4 shrink-0 text-muted-foreground opacity-60 group-hover:opacity-100"
-                  weight="bold"
-                />
+                <PackRowChevron />
               </Link>
               <div className="flex items-center border-l border-border/60 px-1">
                 <DropdownMenu>
@@ -329,8 +322,8 @@ export function ReviewerList({
           <DialogHeader>
             <DialogTitle>New reviewer</DialogTitle>
             <DialogDescription>
-              Name this study pack. You will upload sources and generate views
-              inside it.
+              Name this study pack. You will upload sources and generate study
+              modes inside it.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -443,8 +436,8 @@ export function ReviewerList({
           <DialogHeader>
             <DialogTitle>Delete reviewer</DialogTitle>
             <DialogDescription>
-              This removes the study pack, its sources, and all generated views.
-              This cannot be undone.
+              This removes the study pack, its sources, and all generated study
+              modes. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {error ? (

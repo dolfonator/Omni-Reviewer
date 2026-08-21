@@ -230,7 +230,7 @@ export function LockedInView({ content }: LockedInViewProps) {
       <EmptyState
         icon={<BookOpenText weight="duotone" className="size-5" />}
         title="Locked In is empty"
-        description="Generate the pack to write the full study document from your Ready sources. This view is the source of truth for the other three."
+        description="Generate the pack to write the full study document from your Ready sources. This mode is the source of truth for the other three."
       />
     );
   }

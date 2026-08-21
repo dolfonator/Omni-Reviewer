@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CircleNotch,
@@ -39,9 +40,14 @@ export type TopicListItem = {
 type TopicTabsProps = {
   topics: TopicListItem[];
   selectedId: string | null;
+  onOptimisticSelect?: (id: string) => void;
 };
 
-export function TopicTabs({ topics, selectedId }: TopicTabsProps) {
+export function TopicTabs({
+  topics,
+  selectedId,
+  onOptimisticSelect,
+}: TopicTabsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -54,9 +60,8 @@ export function TopicTabs({ topics, selectedId }: TopicTabsProps) {
   const [busy, setBusy] = useState(false);
 
   function selectTopic(id: string) {
-    startTransition(() => {
-      router.push(`/?topic=${id}`);
-    });
+    if (id === selectedId) return;
+    onOptimisticSelect?.(id);
   }
 
   async function createTopic() {
@@ -190,15 +195,17 @@ export function TopicTabs({ topics, selectedId }: TopicTabsProps) {
                     : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <button
-                  type="button"
+                <Link
+                  href={`/?topic=${topic.id}`}
+                  scroll={false}
+                  prefetch
                   role="tab"
                   aria-selected={selected}
-                  className="min-h-11 rounded-xl px-3.5 py-2 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+                  className="min-h-11 rounded-xl px-3.5 py-2 text-sm font-medium text-inherit no-underline outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
                   onClick={() => selectTopic(topic.id)}
                 >
                   {topic.name}
-                </button>
+                </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={

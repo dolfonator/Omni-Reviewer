@@ -1,9 +1,7 @@
 import { AppShell } from "@/components/app-shell";
-import {
-  ReviewerList,
-  type ReviewerListItem,
-} from "@/components/reviewer-list";
-import { TopicTabs, type TopicListItem } from "@/components/topic-tabs";
+import type { ReviewerListItem } from "@/components/reviewer-list";
+import { StudyHome } from "@/components/study-home";
+import type { TopicListItem } from "@/components/topic-tabs";
 import { listReviewersByTopic, listTopics } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -50,14 +48,12 @@ export default async function HomePage({ searchParams }: HomeProps) {
       title="Study desk"
       subtitle="Pick a topic, open a study pack, attach sources, then generate when you are ready."
     >
-      <div className="flex flex-col gap-8">
-        <TopicTabs topics={serializedTopics} selectedId={selectedId} />
-        <ReviewerList
-          topicId={selectedId}
-          topicName={selectedTopic?.name ?? null}
-          reviewers={serializedReviewers}
-        />
-      </div>
+      <StudyHome
+        topics={serializedTopics}
+        selectedId={selectedId}
+        topicName={selectedTopic?.name ?? null}
+        reviewers={serializedReviewers}
+      />
     </AppShell>
   );
 }

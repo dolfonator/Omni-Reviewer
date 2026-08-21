@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -13,6 +13,10 @@ import {
 } from "@/components/source-panel";
 import { ViewTabs } from "@/components/view-tabs";
 import { Separator } from "@/components/ui/separator";
+import { formatStampLocal, formatStampUtc } from "@/lib/format-generated-at";
+import type { ViewKind } from "@/lib/types";
+import { useIsClient } from "@/lib/use-is-client";
+import { readApiError } from "@/lib/utils";
 
 type ReviewerWorkspaceProps = {
   topicId: string;
@@ -27,39 +31,25 @@ type ReviewerWorkspaceProps = {
 const NOT_GENERATED_YET =
   "Not generated yet. Upload Ready sources, then generate.";
 
-const emptySubscribe = () => () => {};
+function needsViewBodies(views: ViewsPayload): boolean {
+  const kinds: ViewKind[] = ["locked_in", "summary", "test_me", "carded"];
+  return kinds.some((kind) => {
+    const view = views[kind];
+    if (!view) return false;
+    const hasJson =
+      Array.isArray(view.contentJson) && view.contentJson.length > 0;
+    return !view.content?.trim() && !hasJson;
+  });
+}
 
-/** True only after client hydration; false on server and first client paint. */
-function useIsClient() {
-  return useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false,
+function stampFromViews(views: ViewsPayload): string | null {
+  return (
+    views.locked_in?.generatedAt ??
+    views.summary?.generatedAt ??
+    views.test_me?.generatedAt ??
+    views.carded?.generatedAt ??
+    null
   );
-}
-
-/** Locale-independent label for SSR + first client paint (hydration-safe). */
-function formatLastGeneratedStable(iso: string) {
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "Last generated";
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(d.getUTCDate()).padStart(2, "0");
-    const hh = String(d.getUTCHours()).padStart(2, "0");
-    const mi = String(d.getUTCMinutes()).padStart(2, "0");
-    return `Last generated ${yyyy}-${mm}-${dd} ${hh}:${mi} UTC`;
-  } catch {
-    return "Last generated";
-  }
-}
-
-function formatLastGeneratedLocal(iso: string) {
-  try {
-    return `Last generated ${new Date(iso).toLocaleString()}`;
-  } catch {
-    return "Last generated";
-  }
 }
 
 export function ReviewerWorkspace({
@@ -74,12 +64,24 @@ export function ReviewerWorkspace({
   const [sources, setSources] = useState(initialSources);
   const [views, setViews] = useState(initialViews);
   const [generatedAt, setGeneratedAt] = useState(lastGeneratedAt);
+  const [viewsLoading, setViewsLoading] = useState(() =>
+    needsViewBodies(initialViews),
+  );
+  const [viewsError, setViewsError] = useState<string | null>(null);
+  const [viewsReload, setViewsReload] = useState(0);
+  const [redoBusy, setRedoBusy] = useState(false);
+  const [redoError, setRedoError] = useState<string | null>(null);
   const isClient = useIsClient();
+  const generatedStamp = generatedAt
+    ? isClient
+      ? formatStampLocal(generatedAt)
+      : formatStampUtc(generatedAt)
+    : null;
   const generatedLabel = !generatedAt
     ? NOT_GENERATED_YET
-    : isClient
-      ? formatLastGeneratedLocal(generatedAt)
-      : formatLastGeneratedStable(generatedAt);
+    : generatedStamp
+      ? `Last generated ${generatedStamp}`
+      : "Last generated";
 
   const hasReadySource = useMemo(
     () => sources.some((s) => s.ingestStatus === "ready"),
@@ -100,6 +102,70 @@ export function ReviewerWorkspace({
       (s) => s.kind === "video" || s.kind === "audio" || s.ingestStatus === "unprocessed",
     );
   }, [sources]);
+
+  useEffect(() => {
+    if (!needsViewBodies(initialViews)) return;
+    let cancelled = false;
+
+    async function loadBodies() {
+      setViewsLoading(true);
+      setViewsError(null);
+      try {
+        const res = await fetch(`/api/reviewers/${reviewerId}/views`);
+        if (!res.ok) {
+          throw new Error(await readApiError(res));
+        }
+        const data = (await res.json()) as ViewsPayload;
+        if (!cancelled) {
+          setViews(data);
+          const stamp = stampFromViews(data);
+          if (stamp) setGeneratedAt(stamp);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setViewsError(
+            err instanceof Error
+              ? err.message
+              : "Could not load study modes. Try again.",
+          );
+        }
+      } finally {
+        if (!cancelled) setViewsLoading(false);
+      }
+    }
+
+    void loadBodies();
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewerId, initialViews, viewsReload]);
+
+  function applyGenerated(next: ViewsPayload) {
+    setViews(next);
+    setGeneratedAt(stampFromViews(next) ?? new Date().toISOString());
+  }
+
+  async function redo(kind: ViewKind) {
+    setRedoBusy(true);
+    setRedoError(null);
+    try {
+      const res = await fetch(`/api/reviewers/${reviewerId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind }),
+      });
+      if (!res.ok) {
+        setRedoError(await readApiError(res));
+        return;
+      }
+      const data = (await res.json()) as ViewsPayload;
+      applyGenerated(data);
+    } catch {
+      setRedoError("Generation failed. Try again in a moment.");
+    } finally {
+      setRedoBusy(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -137,8 +203,9 @@ export function ReviewerWorkspace({
             Study pack
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Generation writes all four views at once and keeps them until you
-            regenerate.
+            {hasViews
+              ? "To rebuild all four, open Locked In and use Redo."
+              : "Generate writes Locked In, Summary, Test Me, and Carded from your ingested sources."}
           </p>
         </div>
         <GenerateButton
@@ -146,16 +213,7 @@ export function ReviewerWorkspace({
           hasReadySource={hasReadySource}
           hasViews={hasViews}
           sourcesAreMediaOnly={sourcesAreMediaOnly}
-          onGenerated={(next) => {
-            setViews(next);
-            const stamp =
-              next.locked_in?.generatedAt ??
-              next.summary?.generatedAt ??
-              next.test_me?.generatedAt ??
-              next.carded?.generatedAt ??
-              new Date().toISOString();
-            setGeneratedAt(stamp);
-          }}
+          onGenerated={applyGenerated}
         />
       </section>
 
@@ -166,9 +224,31 @@ export function ReviewerWorkspace({
           id="views-heading"
           className="text-sm font-semibold tracking-tight text-foreground"
         >
-          Views
+          Study modes
         </h2>
-        <ViewTabs views={views} />
+        {viewsError ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p role="alert" className="text-sm text-destructive">
+              {viewsError}
+            </p>
+            <button
+              type="button"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              onClick={() => setViewsReload((n) => n + 1)}
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
+        <ViewTabs
+          views={views}
+          viewsLoading={viewsLoading}
+          hasReadySource={hasReadySource}
+          showRedo={hasViews}
+          busy={redoBusy}
+          error={redoError}
+          onRedo={(kind) => void redo(kind)}
+        />
       </section>
     </div>
   );

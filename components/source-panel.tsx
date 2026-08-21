@@ -240,7 +240,7 @@ export function SourcePanel({
         <EmptyState
           icon={<UploadSimple weight="duotone" className="size-5" />}
           title="No sources yet"
-          description="Upload notes, slides, or a PDF. When at least one source is Ready, you can generate the four study views."
+          description="Upload notes, slides, or a PDF. When at least one source is Ready, you can generate the four study modes."
           action={
             <Button
               type="button"
@@ -267,9 +267,11 @@ export function SourcePanel({
                   {source.filename}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={statusVariant(source.ingestStatus)}>
-                    {statusLabel(source.ingestStatus)}
-                  </Badge>
+                  {source.ingestStatus !== "ready" ? (
+                    <Badge variant={statusVariant(source.ingestStatus)}>
+                      {statusLabel(source.ingestStatus)}
+                    </Badge>
+                  ) : null}
                   <span className="text-xs text-muted-foreground capitalize">
                     {source.kind}
                   </span>

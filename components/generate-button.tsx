@@ -1,34 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowsClockwise, CircleNotch, Sparkle } from "@phosphor-icons/react";
+import { CircleNotch, Sparkle } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import type { ViewsPayload } from "@/lib/serialize-view";
 import { readApiError } from "@/lib/utils";
 
-export type ViewsPayload = {
-  locked_in: SerializedView | null;
-  summary: SerializedView | null;
-  test_me: SerializedView | null;
-  carded: SerializedView | null;
-};
-
-export type SerializedView = {
-  id: string;
-  reviewerId: string;
-  kind: string;
-  content: string;
-  contentJson: unknown | null;
-  generatedAt: string;
-};
+export type { SerializedView, ViewsPayload } from "@/lib/serialize-view";
 
 type GenerateButtonProps = {
   reviewerId: string;
@@ -45,9 +24,10 @@ export function GenerateButton({
   sourcesAreMediaOnly,
   onGenerated,
 }: GenerateButtonProps) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (hasViews) return null;
 
   const disabled = busy || !hasReadySource;
 
@@ -64,7 +44,6 @@ export function GenerateButton({
       }
       const data = (await res.json()) as ViewsPayload;
       onGenerated(data);
-      setConfirmOpen(false);
     } catch {
       setError("Generation failed. Try again in a moment.");
     } finally {
@@ -86,10 +65,6 @@ export function GenerateButton({
       }
       return;
     }
-    if (hasViews) {
-      setConfirmOpen(true);
-      return;
-    }
     void runGenerate();
   }
 
@@ -104,20 +79,13 @@ export function GenerateButton({
           title={
             !hasReadySource
               ? "Needs at least one Ready source"
-              : hasViews
-                ? "Regenerate all four views"
-                : "Generate all four views"
+              : "Generate all four study modes"
           }
         >
           {busy ? (
             <>
               <CircleNotch className="animate-spin" weight="bold" />
               Generating
-            </>
-          ) : hasViews ? (
-            <>
-              <ArrowsClockwise weight="bold" />
-              Regenerate
             </>
           ) : (
             <>
@@ -140,47 +108,6 @@ export function GenerateButton({
           {error}
         </p>
       ) : null}
-
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Regenerate study views?</DialogTitle>
-            <DialogDescription>
-              This replaces Locked In, Summary, Test Me, and Carded with a fresh
-              generation from the current Ready sources.
-            </DialogDescription>
-          </DialogHeader>
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setConfirmOpen(false)}
-              disabled={busy}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void runGenerate()}
-              disabled={busy}
-            >
-              {busy ? (
-                <>
-                  <CircleNotch className="animate-spin" />
-                  Regenerating
-                </>
-              ) : (
-                "Regenerate"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

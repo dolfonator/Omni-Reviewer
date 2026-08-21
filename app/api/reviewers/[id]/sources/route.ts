@@ -11,7 +11,7 @@ import { ingestSource } from "@/lib/ingest";
 import {
   createSource,
   getReviewer,
-  listSourcesByReviewer,
+  listSourcesForUi,
 } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,6 @@ function serializeSource(row: {
   blobUrl: string;
   blobPathname: string;
   ingestStatus: string;
-  extractedText: string | null;
   errorMessage: string | null;
   createdAt: Date;
 }) {
@@ -49,8 +48,6 @@ function serializeSource(row: {
     blobPathname: row.blobPathname,
     ingest_status: row.ingestStatus,
     ingestStatus: row.ingestStatus,
-    extracted_text: row.extractedText,
-    extractedText: row.extractedText,
     error_message: row.errorMessage,
     errorMessage: row.errorMessage,
     createdAt: row.createdAt.toISOString(),
@@ -71,7 +68,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Reviewer not found" }, { status: 404 });
   }
 
-  const rows = await listSourcesByReviewer(reviewerId);
+  const rows = await listSourcesForUi(reviewerId);
   return NextResponse.json(rows.map(serializeSource));
 }
 

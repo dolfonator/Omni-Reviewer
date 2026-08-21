@@ -7,6 +7,7 @@ import {
   reviewers,
   sources,
   topics,
+  views,
   type NewSource,
   type Source,
 } from "@/lib/schema";
@@ -104,6 +105,39 @@ export async function listSourcesByReviewer(reviewerId: string) {
     .from(sources)
     .where(eq(sources.reviewerId, reviewerId))
     .orderBy(asc(sources.createdAt));
+}
+
+/** Source rows for UI/list APIs. Omits lecture-sized extractedText. */
+export async function listSourcesForUi(reviewerId: string) {
+  return db
+    .select({
+      id: sources.id,
+      reviewerId: sources.reviewerId,
+      filename: sources.filename,
+      mime: sources.mime,
+      kind: sources.kind,
+      blobUrl: sources.blobUrl,
+      blobPathname: sources.blobPathname,
+      ingestStatus: sources.ingestStatus,
+      errorMessage: sources.errorMessage,
+      createdAt: sources.createdAt,
+    })
+    .from(sources)
+    .where(eq(sources.reviewerId, reviewerId))
+    .orderBy(asc(sources.createdAt));
+}
+
+/** View identity and timestamps only. No markdown/JSON bodies. */
+export async function listViewMetaByReviewer(reviewerId: string) {
+  return db
+    .select({
+      id: views.id,
+      reviewerId: views.reviewerId,
+      kind: views.kind,
+      generatedAt: views.generatedAt,
+    })
+    .from(views)
+    .where(eq(views.reviewerId, reviewerId));
 }
 
 export async function getSource(id: string) {

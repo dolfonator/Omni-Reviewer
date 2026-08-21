@@ -2,7 +2,7 @@
 
 ## What this is
 
-Omni-Reviewer is a signed-in, single-user personal study tool. One person uploads course material, then studies it through four generated views that stay on the pack until they choose to regenerate.
+Omni-Reviewer is a signed-in, single-user personal study tool. One person uploads course material, then studies it through four generated study modes that stay on the pack until they choose to regenerate.
 
 It is not multi-tenant, not a marketing site, and not a shared classroom product. Auth is a single shared password so a public deploy cannot spend generation credits without the gate.
 
@@ -20,15 +20,15 @@ Tristan (or one operator) studying late at night from notes, PDFs, slides, and l
 | Object | Role |
 | --- | --- |
 | **Topic** | Top-level wayfinding tab. Holds many reviewers. |
-| **Reviewer** | A study pack: sources + four independent views. |
+| **Reviewer** | A study pack: sources + four independent study modes. |
 | **Source** | An uploaded file (PDF, image, text, video, audio) with an ingest status. |
-| **View** | One of four persisted study surfaces for a reviewer. |
+| **Study mode** | One of four persisted study surfaces for a reviewer (Locked In, Summary, Test Me, Carded). |
 
 ## Information architecture
 
 - `/login` - password only. No signup, no roles.
 - `/` - topic tabs, create/rename/delete topic, list of reviewers in the selected topic, create/rename/delete reviewer.
-- `/topics/[topicId]/reviewers/[reviewerId]` - pack workspace: source list and upload, generate/regenerate, four view tabs.
+- `/topics/[topicId]/reviewers/[reviewerId]` - pack workspace: source list and upload, generate/regenerate, four study mode tabs.
 
 Topic tabs are primary navigation. A reviewer is a workspace, not a metrics dashboard.
 
@@ -36,14 +36,14 @@ Topic tabs are primary navigation. A reviewer is a workspace, not a metrics dash
 
 | Kind | Behavior | UI badge |
 | --- | --- | --- |
-| PDF, image, text | Fully ingested; used for generation | **Ready** (or **Failed** with message) |
+| PDF, image, text | Fully ingested; used for generation | No badge when Ready; **Failed** with message when ingest fails |
 | Video, audio | Stored as blob only; not transcribed | **Not yet processed** |
 
 Failed sources keep an error message. Video/audio-only packs cannot generate in v1.
 
-## Four views
+## Four study modes
 
-Generated only on explicit Generate / Regenerate. Tab changes never call the model. Views reload from persistence.
+Generated only on explicit Generate or Redo. Tab changes never call the model. Study modes reload from persistence.
 
 1. **Locked In** - comprehensive, cohesive, chronological long-form study document (markdown). Source of truth.
 2. **Summary** - detailed summary of Locked In for last-minute review (markdown).
@@ -52,10 +52,13 @@ Generated only on explicit Generate / Regenerate. Tab changes never call the mod
 
 ## Generation
 
-- Explicit button only. Confirm before regenerating when views already exist.
-- Disabled when no source is `ready`.
+- First-time **Generate** writes all four study modes. After that the button is hidden.
+- **Redo** lives on the active study mode. Confirm when that mode already has content.
+- Redo Locked In rebuilds Locked In, then Summary, Test Me, and Carded from current sources.
+- Redo Summary / Test Me / Carded rewrites only that mode from persisted upstream (Locked In or Summary).
+- Disabled when the required upstream is missing, or when no source is `ready` for Locked In / Generate.
 - Clear error when the pack is video/audio only or has no ingested text.
-- Pipeline (server): ready sources → Locked In → Summary → Test Me → Carded; all four upserted together.
+- Pipeline (server, full pack): ready sources → Locked In → Summary → Test Me → Carded; all four upserted together.
 
 ## Auth and security facts
 

@@ -32,7 +32,7 @@ Dark product shell by default (`html.dark`).
 | `--primary` | Lamp amber: primary actions, selected tab |
 | `--reading` | Warm paper for long-form |
 | `--reading-foreground` | Ink on paper |
-| `--success` | Ready badge |
+| `--success` | Available for success states; unused for Ready (badge no longer shown) |
 | `--warning` | Not yet processed |
 | `--destructive` | Failed / delete |
 
@@ -42,7 +42,7 @@ Accent is for selection and primary CTAs only, not decoration.
 
 - App shell: slim top bar (wordmark + sign out), content column max ~1100px.
 - Home: topic tab strip full width, then reviewer list.
-- Workspace: stacked on mobile; desktop may show sources beside or above views. Prefer sources on top, then generate row, then view tabs.
+- Workspace: stacked on mobile; desktop may show sources beside or above study modes. Prefer sources on top, then generate row, then study mode tabs.
 - Breakpoint: single column below 768px. No horizontal overflow at 390px.
 - Touch targets: primary controls ≥ 44px height on touch-sized viewports.
 
@@ -50,10 +50,11 @@ Accent is for selection and primary CTAs only, not decoration.
 
 - **Topic tabs**: horizontal scroll if needed; selected = amber underline or filled chip.
 - **Reviewer rows**: name + chevron; overflow menu rename/delete.
-- **Source rows**: filename, kind icon, status badge, delete.
-- **Badges**: Ready / Not yet processed / Failed - color-coded, always text-labeled.
-- **Generate**: primary amber; confirm dialog only when views already exist.
-- **View tabs**: Locked In · Summary · Test Me · Carded.
+- **Source rows**: filename, kind icon, status badge when Failed or Not yet processed, delete. Ready sources show no status badge.
+- **Badges**: Failed / Not yet processed are labeled. Ready badge is no longer shown.
+- **Generate**: primary amber; first pack only. After study modes exist, hide it.
+- **Redo**: outline control on the active study mode, with a one-line description of upstream. Confirm if that mode already has content. Redo Locked In rebuilds all four.
+- **Study mode tabs**: Locked In · Summary · Test Me · Carded.
 - **Empty states**: short title, one teaching sentence, one action when available.
 - **Skeletons**: muted blocks, not centered spinners, for list loads.
 
@@ -67,7 +68,7 @@ Accent is for selection and primary CTAs only, not decoration.
 
 ## Copy rules
 
-- Product language: topic, reviewer, source, generate, regenerate, Locked In, Summary, Test Me, Carded.
+- Product language: topic, reviewer, source, generate, redo, study mode, Locked In, Summary, Test Me, Carded.
 - Controls name the action.
 - Errors name the problem and recovery.
 - Never use an em dash in visible UI copy. Use a period, colon, or comma.

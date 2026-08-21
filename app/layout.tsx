@@ -23,7 +23,7 @@ const uiMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Omni-Reviewer",
-  description: "Personal study packs with four durable views.",
+  description: "Personal study packs with four durable study modes.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,6 +1,6 @@
 # Omni-Reviewer
 
-Personal study packs: organize topics, attach sources, and generate four persistent study views from what you upload.
+Personal study packs: organize topics, attach sources, and generate four persistent study modes from what you upload.
 
 ## What it is
 
@@ -8,16 +8,16 @@ Omni-Reviewer is a signed-in, single-user study app.
 
 - **Topics** are the top-level tabs.
 - Each topic holds many **reviewers** (study packs).
-- Each reviewer owns its own uploaded **sources** and an independent set of four **views**.
+- Each reviewer owns its own uploaded **sources** and an independent set of four **study modes**.
 
-### Four views (per reviewer)
+### Four study modes (per reviewer)
 
-1. **Locked In** — comprehensive, cohesive, chronological long-form study document.
-2. **Summary** — detailed summary of Locked In for last-minute review.
-3. **Test Me** — questionnaire / quiz of the material.
-4. **Carded** — flashcards derived from Summary.
+1. **Locked In**. Comprehensive, cohesive, chronological long-form study document.
+2. **Summary**. Detailed summary of Locked In for last-minute review.
+3. **Test Me**. Questionnaire / quiz of the material.
+4. **Carded**. Flashcards derived from Summary.
 
-Views are persisted. Generate or regenerate only on an explicit action.
+Study modes are persisted. Generate or regenerate only on an explicit action.
 
 ### v1 ingest rules
 
